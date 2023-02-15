@@ -1,0 +1,78 @@
+late String routeToGo = '/';
+var notTitle="".obs,load=false.obs;
+String? payload;
+var flutterLN=FlutterLocalNotificationsPlugin() ;
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // await Firebase.initializeApp();
+  print("_firebaseMessagingBackgroundHandler Clicked!");
+  print(message.notification!.body);
+  showNot(message);
+}
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  'ready','ready', importance: Importance.high);
+
+selectNotification(NotificationResponse payload) async {
+  print("selecting notification ..............");
+  if (payload != null) {
+    debugPrint('notification payload: ${payload}');
+    print('notification payload: ${payload.payload}');
+    navigatorKey.currentState?.pushNamed(routeToGo);
+  }
+}
+showNot(RemoteMessage message){
+  print("showing not............");
+  int id=int.parse(message.notification?.titleLocKey??"1");
+  var androidDetails = AndroidNotificationDetails("ready", "readyapp",importance: Importance.high);
+  var notDetails =NotificationDetails(android: androidDetails, iOS: null);
+  if(notTitle.value!=message.notification?.title) {
+    print("notTitle $notTitle............");
+    flutterLN.show(id, message.notification?.title, message.notification?.body,
+        notDetails);
+    notTitle.value = message.notification?.title ?? "";
+  }
+  print("same not...................");
+}
+
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await getUserData();
+  FirebaseMessaging.instance.getInitialMessage();
+    // await flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation
+    //     <AndroidFlutterLocalNotificationsPlugin>() ?.createNotificationChannel(channel);
+    // initialize notification for android
+  //   var initialzationSettingsAndroid =AndroidInitializationSettings('app_icon');
+  //   var initializationSettings =InitializationSettings(android: initialzationSettingsAndroid,iOS: null);
+  // await flutterLocalNotificationsPlugin.initialize(initializationSettings,
+  //     onDidReceiveNotificationResponse: selectNotification);
+  var androidSetting = AndroidInitializationSettings('app_icon');
+  var settings =InitializationSettings(android: androidSetting, iOS: null); //9572591808
+  flutterLN = FlutterLocalNotificationsPlugin()..initialize(settings,
+      onDidReceiveNotificationResponse: selectNotification);
+     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // final NotificationAppLaunchDetails? notificationAppLaunchDetails =
+    // await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+    //
+    // payload= notificationAppLaunchDetails!.notificationResponse?.payload;
+    // if(payload != null){
+    //   print("global payload ${payload}................");
+    // }
+
+  FirebaseMessaging.onMessage.listen((RemoteMessage message)async {
+    print('Got a message while in the firebase foreground.............! data: ${message.data}');
+    final notification = message.notification;
+    if (notification != null) {
+     showNot(message);
+   
+  });
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+      print("opening app..............");
+      print(message.notification!.body != null);
+      if (message.notification!.body != null) {
+         navigatorKey.currentState?.pushNamed(routeToGo);
+      }
+    });
+  runApp( MyApp());
+
+}
